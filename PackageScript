@@ -1,0 +1,22 @@
+# vim: set ts=8 sts=2 sw=2 tw=99 et ft=python:
+import os
+
+# Files are placed in a ready-to-copy addons/sourcemod tree.
+builder.SetBuildFolder('package')
+
+folder_list = [
+  'addons/sourcemod/extensions',
+  'addons/sourcemod/scripting/include',
+]
+
+folder_map = {}
+for folder in folder_list:
+  folder_map[folder] = builder.AddFolder(os.path.normpath(folder))
+
+# Copy the include file.
+builder.AddCopy(os.path.join(builder.sourcePath, 'include', 'filemanager.inc'),
+                folder_map['addons/sourcemod/scripting/include'])
+
+# Copy the binaries.
+for cxx_task in Extension.extensions:
+  builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])

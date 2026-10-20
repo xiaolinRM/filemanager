@@ -1,0 +1,12 @@
+# AMBuild output
+build/
+package/
+.ambuild2/
+
+# Compiler output
+*.o
+*.obj
+*.pdb
+*.exp
+*.lib
+*.smx

@@ -1,0 +1,25 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
+import os
+
+projectName = 'filemanager.ext'
+
+sourceFiles = [
+  os.path.join('src', 'extension.cpp'),
+  os.path.join('src', 'fm_core.cpp'),
+]
+
+if Extension.platform == 'windows':
+  sourceFiles += [os.path.join('src', 'fm_win.cpp')]
+elif Extension.platform == 'linux':
+  sourceFiles += [
+    os.path.join('src', 'fm_linux.cpp'),
+    os.path.join('src', 'fm_throw_stubs.cpp'),
+  ]
+else:
+  raise Exception('Unsupported platform: {}'.format(Extension.platform))
+
+sourceFiles += [os.path.join(Extension.sm_root, 'public', 'smsdk_ext.cpp')]
+
+binary = Extension.BuildExtension(builder, Extension.cxx, projectName)
+binary.sources += sourceFiles
+Extension.extensions = [builder.Add(binary)]

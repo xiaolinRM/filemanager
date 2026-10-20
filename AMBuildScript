@@ -1,0 +1,208 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
+import os
+import sys
+
+# File Manager extension build script.
+#
+# This is a standalone AMBuild 2 project: it only needs the SourceMod source
+# tree for the public SDK headers. No HL2SDK and no Metamod:Source headers are
+# required.
+
+
+def Normalize(path):
+  return os.path.abspath(os.path.normpath(path))
+
+
+def ResolveEnvPath(env, folder):
+  if env in os.environ:
+    path = os.environ[env]
+    if os.path.isdir(path):
+      return path
+    return None
+
+  head = os.getcwd()
+  oldhead = None
+  while head is not None and head != oldhead:
+    path = os.path.join(head, folder)
+    if os.path.isdir(path):
+      return path
+    oldhead = head
+    head, tail = os.path.split(head)
+  return None
+
+
+class ExtensionConfig(object):
+  def __init__(self):
+    self.sm_root = None
+    self.extensions = []
+    self.platform = None
+    self.cxx = None
+
+  @property
+  def tag(self):
+    if builder.options.debug == '1':
+      return 'Debug'
+    return 'Release'
+
+  def detectSDKs(self):
+    if builder.options.sm_path:
+      self.sm_root = builder.options.sm_path
+    else:
+      self.sm_root = ResolveEnvPath('SOURCEMOD', 'sourcemod')
+      if not self.sm_root:
+        self.sm_root = os.path.join(builder.sourcePath, '..', 'sourcemod')
+
+    if not self.sm_root or not os.path.isdir(self.sm_root):
+      raise Exception('Could not find a SourceMod source tree. Use --sm-path=...')
+
+    self.sm_root = Normalize(self.sm_root)
+    if not os.path.isfile(os.path.join(self.sm_root, 'public', 'smsdk_ext.cpp')):
+      raise Exception('The SourceMod source tree at {} is missing public/smsdk_ext.cpp'.format(
+        self.sm_root))
+
+  def configure(self):
+    cxx = builder.DetectCxx(target_arch='x86')
+    platform = cxx.target.platform
+    self.platform = platform
+    self.cxx = cxx
+
+    if builder.options.opt == '1':
+      cxx.defines += ['NDEBUG']
+    if builder.options.debug == '1':
+      cxx.defines += ['DEBUG', '_DEBUG']
+
+    cxx.defines += ['META_NO_HL2SDK']
+
+    if platform == 'linux':
+      self.configure_linux(cxx)
+    elif platform == 'windows':
+      self.configure_windows(cxx)
+    else:
+      raise Exception('Unsupported platform: {}'.format(platform))
+
+    cxx.includes += [
+      os.path.join(self.sm_root, 'public'),
+      os.path.join(self.sm_root, 'public', 'amtl', 'amtl'),
+      os.path.join(self.sm_root, 'public', 'amtl'),
+      os.path.join(self.sm_root, 'sourcepawn', 'include'),
+      os.path.join(builder.sourcePath, 'src'),
+    ]
+
+  def configure_linux(self, cxx):
+    cxx.defines += [
+      '_LINUX',
+      'POSIX',
+      '_DEFAULT_SOURCE',
+      '_FILE_OFFSET_BITS=64',
+      'HAVE_STDINT_H',
+      'GNUC',
+    ]
+    cxx.cflags += [
+      '-pipe',
+      '-m32',
+      '-fPIC',
+      '-fno-strict-aliasing',
+      '-fvisibility=hidden',
+      '-msse2',
+      '-mfpmath=sse',
+      '-fno-omit-frame-pointer',
+      '-Wall',
+      '-Wextra',
+      '-Wno-unused-parameter',
+      '-Wno-unused-variable',
+      '-Wno-missing-field-initializers',
+    ]
+    cxx.cxxflags += [
+      '-std=c++14',
+      '-fno-exceptions',
+      '-fno-rtti',
+      '-fno-threadsafe-statics',
+      '-fvisibility-inlines-hidden',
+      '-Wno-non-virtual-dtor',
+      '-Wno-overloaded-virtual',
+      '-Wno-sized-deallocation',
+    ]
+    if builder.options.opt == '1':
+      cxx.cflags += ['-O3']
+    if builder.options.debug == '1':
+      cxx.cflags += ['-g', '-O0']
+
+    cxx.linkflags += [
+      '-m32',
+      '-static-libstdc++',
+      '-static-libgcc',
+      '-Wl,--exclude-libs,ALL',
+      '-Wl,--as-needed',
+      '-Wl,-z,relro',
+      '-Wl,-z,now',
+      '-lm',
+      '-lpthread',
+    ]
+
+  def configure_windows(self, cxx):
+    cxx.defines += [
+      'WIN32',
+      '_WINDOWS',
+      '_WIN32_WINNT=0x0601',
+      'NOMINMAX',
+      '_CRT_SECURE_NO_DEPRECATE',
+      '_CRT_SECURE_NO_WARNINGS',
+      '_CRT_NONSTDC_NO_DEPRECATE',
+      '_ITERATOR_DEBUG_LEVEL=0',
+    ]
+    cxx.cflags += [
+      '/MT',
+      '/W3',
+      '/Oy-',
+    ]
+    cxx.cxxflags += [
+      '/EHsc',
+      '/GR-',
+      '/TP',
+    ]
+    if builder.options.opt == '1':
+      cxx.cflags += ['/O2', '/Zo']
+      cxx.linkflags += ['/OPT:ICF', '/OPT:REF']
+    if builder.options.debug == '1':
+      cxx.cflags += ['/Od', '/RTC1']
+
+    cxx.linkflags += [
+      '/MACHINE:X86',
+      'kernel32.lib',
+      'user32.lib',
+      'advapi32.lib',
+      'shell32.lib',
+      'ole32.lib',
+      'oleaut32.lib',
+      'uuid.lib',
+    ]
+
+  def ConfigureForExtension(self, context, compiler):
+    compiler.cxxincludes += [
+      os.path.join(builder.sourcePath, 'src'),
+      os.path.join(self.sm_root, 'public'),
+      os.path.join(self.sm_root, 'public', 'amtl', 'amtl'),
+      os.path.join(self.sm_root, 'public', 'amtl'),
+      os.path.join(self.sm_root, 'sourcepawn', 'include'),
+    ]
+    compiler.defines += ['META_NO_HL2SDK']
+    return compiler
+
+  def BuildExtension(self, context, compiler, name):
+    compiler = compiler.clone()
+    if compiler.target.arch == 'x86_64' and compiler.like('gcc'):
+      compiler.cflags += ['-fPIC']
+    self.ConfigureForExtension(context, compiler)
+    return compiler.Library(name)
+
+
+Extension = ExtensionConfig()
+Extension.detectSDKs()
+Extension.configure()
+
+BuildScripts = [
+  'AMBuilder',
+  'PackageScript',
+]
+
+builder.Build(BuildScripts, {'Extension': Extension})
