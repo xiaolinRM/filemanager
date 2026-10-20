@@ -30,8 +30,8 @@
 #define SMEXT_CONF_NAME			"File Manager"
 #define SMEXT_CONF_DESCRIPTION	"Fast file and directory management natives (copy, move, delete)"
 #define SMEXT_CONF_VERSION		"1.0.0"
-#define SMEXT_CONF_AUTHOR		"File Manager Contributors"
-#define SMEXT_CONF_URL			"https://www.sourcemod.net/"
+#define SMEXT_CONF_AUTHOR		"DeepSeek"
+#define SMEXT_CONF_URL			"https://github.com/xiaolinRM/filemanager"
 #define SMEXT_CONF_LOGTAG		"FILEMANAGER"
 #define SMEXT_CONF_LICENSE		"GPLv3"
 #define SMEXT_CONF_DATESTRING	__DATE__

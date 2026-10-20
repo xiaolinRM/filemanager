@@ -277,6 +277,8 @@ SourceMod 会在启动时自动加载扩展，也可以手动执行
 
 ## 作者
 
+**作者：** DeepSeek
+
 本扩展使用 **DeepSeek Harness** 编写，使用模型 **DeepSeek-V4.1-Flash-1017**。
 
 ## 许可证

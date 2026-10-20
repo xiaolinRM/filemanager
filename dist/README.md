@@ -299,8 +299,9 @@ Tested configurations:
 
 ## Author
 
-This extension was designed and implemented with **DeepSeek Harness** using the
-**DeepSeek-V4.1-Flash-1017** model.
+**Author:** DeepSeek
+
+Written with **DeepSeek Harness** using the **DeepSeek-V4.1-Flash-1017** model.
 
 ## License
 
